@@ -1,0 +1,1022 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>MediaHelper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: quiet black/grey page with soft light blobs behind liquid-glass panels. Big wordmark, centered glass plate, analyzer console that locks behind a plan, profile sheet. Single dark look by choice. */
+:root {
+  --bg: #08080a;
+  --ink: #f2f2f3;
+  --mute: #9a9a9f;
+  --dim: #66666b;
+  --glass-a: rgba(255,255,255,.10);
+  --glass-b: rgba(255,255,255,.035);
+  --glass-line: rgba(255,255,255,.17);
+  --glass-hi: rgba(255,255,255,.26);
+  --solid: #1a1a1d;
+  --font-display: "Oswald", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  padding-inline: 16px;
+  padding-block: 0 56px;
+  overflow-x: hidden;
+}
+.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(560px 420px at 12% 6%, rgba(255,255,255,.16), transparent 62%),
+    radial-gradient(680px 520px at 92% 28%, rgba(170,170,185,.14), transparent 62%),
+    radial-gradient(760px 560px at 25% 96%, rgba(210,210,220,.11), transparent 62%),
+    radial-gradient(420px 320px at 70% 78%, rgba(255,255,255,.07), transparent 62%); }
+.wrap { position: relative; z-index: 1; max-width: 1120px; margin-inline: auto; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.tag { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+
+/* liquid glass */
+.glass {
+  background: linear-gradient(160deg, var(--glass-a), var(--glass-b));
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid var(--glass-line);
+  box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 rgba(255,255,255,.04), inset 0 0 24px rgba(255,255,255,.03), 0 20px 50px rgba(0,0,0,.45);
+  border-radius: 28px;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--solid); }
+}
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-block: 18px; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--glass-line); background: linear-gradient(160deg, var(--glass-a), var(--glass-b)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 var(--glass-hi); padding: 8px 16px; border-radius: 999px; font-size: 14px; transition: background .15s, transform .15s; max-width: 100%; }
+.pill:hover { background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,.07)); }
+.pill.on { background: var(--ink); color: #0b0b0d; border-color: var(--ink); }
+.lang { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; border: 1px solid var(--glass-line); background: rgba(255,255,255,.04); }
+.lang .pill { border: 0; box-shadow: none; padding: 5px 12px; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; }
+.lang .pill.on { background: var(--ink); color: #0b0b0d; }
+.av-mini { width: 24px; height: 24px; border-radius: 50%; flex: none; overflow: hidden; display: inline-grid; place-items: center; background: linear-gradient(140deg, #d8d8dc, #5b5b61); color: #0b0b0d; font-weight: 700; font-size: 12px; }
+.av-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#acct span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14ch; }
+
+/* hero */
+.hero { padding-block: 24px 48px; text-align: center; }
+.wordmark { margin: 0; font-family: var(--font-display); font-weight: 700; line-height: .9; letter-spacing: -.015em; font-size: clamp(3rem, 13vw, 9.5rem); overflow-wrap: anywhere; }
+.wordmark .b { background: linear-gradient(180deg, #ffffff 10%, #6f6f75 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.slogan { margin: 20px auto 32px; max-width: 44ch; color: var(--mute); font-size: 1.05rem; }
+.plate { margin-inline: auto; width: min(560px, 100%); padding: 10px; border-radius: 32px; }
+.plate nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.plate nav button { border: 0; background: transparent; padding: 14px 8px; border-radius: 22px; font-family: var(--font-display); font-weight: 500; font-size: clamp(1.05rem, 3.6vw, 1.4rem); letter-spacing: .05em; text-transform: uppercase; transition: background .15s, color .15s; }
+.plate nav button:hover { background: var(--ink); color: #0b0b0d; }
+.plate-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 8px 4px; flex-wrap: wrap; }
+
+/* sections */
+section { padding-block: 64px 0; scroll-margin-top: 12px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; margin-bottom: 26px; }
+.sec-head h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; letter-spacing: .01em; text-transform: uppercase; }
+.sec-head p { margin: 0; color: var(--mute); max-width: 56ch; }
+
+/* analyzer */
+.cw { position: relative; }
+.console { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .console { grid-template-columns: minmax(0, 1fr); } }
+.box { padding: 24px; min-width: 0; }
+.box h3 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.4rem; letter-spacing: .04em; text-transform: uppercase; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+@media (max-width: 480px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 13px; color: var(--mute); }
+.field label i { font-style: normal; color: var(--dim); }
+.field input, .field select { width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--glass-line); padding: 12px 14px; border-radius: 14px; font-variant-numeric: tabular-nums; transition: border-color .15s, background .15s; }
+.field input:focus, .field select:focus { outline: none; border-color: rgba(255,255,255,.6); background: rgba(0,0,0,.5); }
+.field input.bad { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
+.err { min-height: 1.3em; font-size: 13px; color: #e6e6e8; margin-top: 10px; }
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 10px; border: 1px solid var(--ink); background: var(--ink); color: #0b0b0d; padding: 13px 24px; border-radius: 999px; font-weight: 700; font-size: 15px; transition: transform .15s, box-shadow .15s, background .15s; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,255,255,.14); }
+.btn.ghost { background: rgba(255,255,255,.06); color: var(--ink); border-color: var(--glass-line); }
+.btn.ghost:hover { background: rgba(255,255,255,.14); box-shadow: none; }
+.btn.wide { width: 100%; margin-top: 8px; }
+.btn.sm { padding: 10px 18px; font-size: 14px; }
+
+.score-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-block: 16px 6px; }
+.score-num { font-family: var(--font-display); font-weight: 700; font-size: clamp(4rem, 12vw, 6.5rem); line-height: .85; font-variant-numeric: tabular-nums; }
+.score-num small { font-size: .28em; color: var(--mute); margin-left: 4px; font-weight: 500; }
+.meter { flex: 1 1 180px; min-width: 0; }
+.bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
+.bar > b { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8b8b91, #fff); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.verdict { margin: 10px 0 0; font-size: 15px; }
+.empty { color: var(--mute); border: 1px dashed var(--glass-line); border-radius: 20px; padding: 28px 18px; text-align: center; margin-top: 16px; }
+.tips { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+.tip { border: 1px solid var(--glass-line); background: rgba(255,255,255,.04); padding: 14px 16px; border-radius: 20px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; }
+.tip .lvl { grid-row: span 2; align-self: start; font-size: 12px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--glass-line); color: var(--mute); white-space: nowrap; }
+.tip.high .lvl { background: var(--ink); color: #0b0b0d; border-color: var(--ink); font-weight: 700; }
+.tip.mid .lvl { color: var(--ink); border-color: rgba(255,255,255,.45); }
+.tip.ok { opacity: .68; }
+.tip h4 { margin: 0; font-size: 15px; font-weight: 700; }
+.tip h4 span { font-family: var(--font-mono); font-weight: 400; font-size: 12px; color: var(--mute); margin-left: 8px; }
+.tip p { margin: 0; color: #cfcfd3; font-size: 14.5px; overflow-wrap: anywhere; }
+.hist { margin-top: 22px; border-top: 1px solid var(--glass-line); padding-top: 14px; }
+.hist ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-family: var(--font-mono); font-size: 13px; }
+.hist li { display: flex; justify-content: space-between; gap: 12px; color: #cfcfd3; min-width: 0; }
+.hist li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* lock */
+.lock { position: absolute; inset: 0; z-index: 5; border-radius: 28px; display: grid; place-items: start center; padding: 32px 16px; background: rgba(8,8,10,.42); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.lock-card { position: sticky; top: 24px; width: min(420px, 100%); padding: 28px; text-align: center; display: grid; gap: 14px; justify-items: center; }
+.lock-card h3 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.7rem; letter-spacing: .03em; text-transform: uppercase; }
+.lock-card p { margin: 0; color: #cfcfd3; }
+.lock-ico { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--glass-line); background: rgba(255,255,255,.08); }
+.lock-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* FAQ */
+.faq { display: grid; gap: 10px; }
+.faq details { padding: 4px 22px; border-radius: 22px; }
+.faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 16px 0; font-weight: 500; font-size: 1.05rem; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--font-mono); font-size: 1.4rem; line-height: 1; color: var(--mute); flex: none; }
+.faq details[open] summary::after { content: "–"; }
+.faq details p { margin: 0; padding: 0 0 18px; max-width: 70ch; color: #cfcfd3; }
+
+/* plans */
+.products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .products { grid-template-columns: minmax(0, 1fr); } }
+.prod { padding: 26px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+.prod.feat { background: linear-gradient(160deg, rgba(255,255,255,.17), rgba(255,255,255,.06)); border-color: rgba(255,255,255,.34); }
+.prod h3 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.7rem; letter-spacing: .03em; text-transform: uppercase; }
+.prod ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; flex: 1; }
+.prod li { padding-left: 22px; position: relative; color: #cfcfd3; }
+.prod li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); opacity: .8; }
+.price { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; line-height: 1; }
+.price small { font-size: 14px; color: var(--mute); font-family: var(--font-body); font-weight: 400; margin-left: 6px; }
+.badge { position: absolute; top: 16px; right: 16px; background: var(--ink); color: #0b0b0d; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+
+/* about */
+.about { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .about { grid-template-columns: minmax(0, 1fr); } }
+.about .lead { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.6rem, 4.4vw, 2.6rem); line-height: 1.1; margin: 0 0 16px; }
+.about p { color: #cfcfd3; max-width: 60ch; margin-block: 0 12px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.stat { padding: 18px; border-radius: 22px; }
+.stat b { display: block; font-family: var(--font-display); font-size: clamp(2.2rem, 5.5vw, 3.2rem); line-height: 1; font-weight: 700; }
+.stat span { font-size: 13px; color: var(--mute); }
+
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--glass-line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* modal + profile */
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); display: flex; padding: 16px; overflow-y: auto; }
+.dialog { width: min(480px, 100%); margin: auto; padding: 26px; position: relative; background: linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.05)), rgba(20,20,23,.55); }
+.dialog h3 { margin: 0 0 16px; font-family: var(--font-display); font-weight: 500; font-size: 1.9rem; letter-spacing: .03em; text-transform: uppercase; line-height: 1; }
+.tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; border: 1px solid var(--glass-line); background: rgba(255,255,255,.04); margin-bottom: 18px; }
+.tabs .pill { flex: 1; justify-content: center; border: 0; box-shadow: none; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.tabs .pill.on { background: var(--ink); color: #0b0b0d; }
+.close { position: absolute; top: 16px; right: 16px; border: 1px solid var(--glass-line); background: rgba(255,255,255,.06); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; line-height: 1; display: grid; place-items: center; }
+.close:hover { background: rgba(255,255,255,.16); }
+.rules { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 4px; font-size: 13px; color: var(--mute); }
+.rules li::before { content: "○ "; }
+.rules li.pass { color: var(--ink); }
+.rules li.pass::before { content: "● "; }
+.dialog form.stack { display: grid; gap: 14px; }
+.p-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; min-width: 0; }
+.avatar { position: relative; width: 88px; height: 88px; border-radius: 50%; border: 1px solid var(--glass-line); padding: 0; overflow: hidden; flex: none; background: linear-gradient(140deg, #d8d8dc, #55555b); color: #0b0b0d; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.avatar em { position: absolute; inset: auto 0 0 0; font-style: normal; font-family: var(--font-body); font-weight: 500; font-size: 11px; text-align: center; padding: 5px 0; background: rgba(0,0,0,.55); color: var(--ink); opacity: 0; transition: opacity .15s; }
+.avatar:hover em, .avatar:focus-visible em { opacity: 1; }
+.p-id { min-width: 0; display: grid; gap: 2px; }
+.p-id b { font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-id span { color: var(--mute); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row { display: flex; gap: 8px; align-items: stretch; }
+.row input { flex: 1; min-width: 0; }
+.row .btn { flex: none; }
+.p-block { display: grid; gap: 8px; margin-top: 16px; }
+.subcard { border: 1px solid var(--glass-line); background: rgba(255,255,255,.05); border-radius: 22px; padding: 16px 18px; display: grid; gap: 10px; }
+.sub-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.status { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--glass-line); color: var(--mute); }
+.status.on { background: var(--ink); color: #0b0b0d; border-color: var(--ink); }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.kv span:first-child { color: var(--mute); }
+.kv span:last-child { font-variant-numeric: tabular-nums; text-align: right; }
+.note { font-size: 13px; color: var(--mute); min-height: 1.3em; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; max-width: calc(100% - 32px); padding: 12px 22px; border-radius: 999px; font-size: 14px; background: rgba(240,240,242,.94); color: #0b0b0d; box-shadow: 0 12px 40px rgba(0,0,0,.5); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bar > b, .btn, .pill, .plate nav button, .avatar em { transition: none; }
+}
+</style>
+
+<div class="bg" aria-hidden="true"></div>
+
+<div class="wrap">
+  <div class="top">
+    <span class="tag" data-i18n="topTag">YouTube growth console</span>
+    <div class="top-actions">
+      <div class="lang" role="group" aria-label="Language">
+        <button class="pill" id="lang-ru" type="button">RU</button>
+        <button class="pill" id="lang-en" type="button">EN</button>
+      </div>
+      <button class="pill on" id="acct" type="button"></button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <h1 class="wordmark">Media<span class="b">Helper</span></h1>
+    <p class="slogan" data-i18n="slogan">Enter your video numbers. Get a ranked list of fixes for your channel.</p>
+    <div class="plate glass">
+      <nav aria-label="Main">
+        <button type="button" data-go="faq">FAQ</button>
+        <button type="button" data-go="products" data-i18n="navProducts">Products</button>
+        <button type="button" data-go="about" data-i18n="navAbout">About</button>
+      </nav>
+      <div class="plate-foot">
+        <span class="tag" data-i18n="plateA">Access by plan</span>
+        <button class="pill" type="button" data-go="analyzer" data-i18n="plateB">Analyze video ↓</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="analyzer">
+    <div class="sec-head">
+      <h2 data-i18n="anTitle">Analyzer</h2>
+      <p data-i18n="anLead">Type in what YouTube Studio shows for one video. Leave optional fields empty if you do not have them.</p>
+    </div>
+    <div class="cw">
+      <div class="console" id="console">
+        <div class="box glass">
+          <h3 data-i18n="formTitle">Your video</h3>
+          <form id="form" novalidate>
+            <div class="grid2">
+              <div class="field full">
+                <label for="f-title" data-i18n="lTitle">Video title</label>
+                <input id="f-title" type="text" autocomplete="off" maxlength="150">
+              </div>
+              <div class="field">
+                <label for="f-views" data-i18n="lViews">Views *</label>
+                <input id="f-views" type="number" min="0" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="f-likes" data-i18n="lLikes">Likes *</label>
+                <input id="f-likes" type="number" min="0" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="f-comments" data-i18n="lComments">Comments *</label>
+                <input id="f-comments" type="number" min="0" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="f-subs" data-i18n="lSubs">Subscribers</label>
+                <input id="f-subs" type="number" min="0" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="f-ctr" data-i18n="lCtr">Impressions CTR, %</label>
+                <input id="f-ctr" type="number" min="0" max="100" step="0.1" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="f-ret" data-i18n="lRet">Avg. % viewed</label>
+                <input id="f-ret" type="number" min="0" max="100" step="0.1" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="f-dur" data-i18n="lDur">Video length, min</label>
+                <input id="f-dur" type="number" min="0" step="0.1" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="f-freq" data-i18n="lFreq">Uploads per week</label>
+                <input id="f-freq" type="number" min="0" step="0.5" inputmode="decimal">
+              </div>
+            </div>
+            <div class="err" id="form-err" role="alert"></div>
+            <button class="btn wide" type="submit" data-i18n="analyze">Analyze</button>
+          </form>
+        </div>
+
+        <div class="box glass" aria-live="polite">
+          <h3 data-i18n="resTitle">Fix list</h3>
+          <div id="result">
+            <div class="empty" data-i18n="resEmpty">Results appear here after you press Analyze.</div>
+          </div>
+          <div class="hist" id="hist" hidden>
+            <span class="tag" data-i18n="histTitle">Your last analyses</span>
+            <ul id="hist-list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="lock" id="lock" hidden>
+        <div class="lock-card glass">
+          <div class="lock-ico" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          </div>
+          <h3 data-i18n="lockTitle">Analyzer is locked</h3>
+          <p id="lock-text"></p>
+          <div class="lock-btns">
+            <button class="btn sm" id="lock-main" type="button"></button>
+            <button class="btn sm ghost" type="button" data-go="products" data-i18n="seePlans">See plans</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="sec-head">
+      <h2>FAQ</h2>
+      <p data-i18n="faqLead">Short answers to what people ask first.</p>
+    </div>
+    <div class="faq" id="faq-list"></div>
+  </section>
+
+  <section id="products">
+    <div class="sec-head">
+      <h2 data-i18n="navProducts">Products</h2>
+      <p data-i18n="prodLead">Pick an access plan. After you buy, you get a key and activate it in your profile.</p>
+    </div>
+    <div class="products" id="prod-list"></div>
+  </section>
+
+  <section id="about">
+    <div class="sec-head">
+      <h2 data-i18n="navAbout">About</h2>
+      <p data-i18n="aboutLead">Built for creators who would rather make videos than read analytics.</p>
+    </div>
+    <div class="about">
+      <div>
+        <p class="lead" data-i18n="aboutLeadBig">We turn Studio numbers into a to-do list.</p>
+        <p data-i18n="aboutP1"></p>
+        <p data-i18n="aboutP2"></p>
+      </div>
+      <div class="stats">
+        <div class="stat glass"><b>9</b><span data-i18n="st1">metrics checked</span></div>
+        <div class="stat glass"><b>2</b><span data-i18n="st2">languages</span></div>
+        <div class="stat glass"><b>3</b><span data-i18n="st3">access plans</span></div>
+        <div class="stat glass"><b>60s</b><span data-i18n="st4">to first result</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="tag">© 2026 MediaHelper</span>
+    <span class="tag" data-i18n="footNote">Not affiliated with YouTube.</span>
+  </footer>
+</div>
+
+<!-- account / profile modal -->
+<div class="modal" id="modal" hidden>
+  <div class="dialog glass" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <button class="close" id="m-close" type="button" aria-label="Close">×</button>
+    <h3 id="m-title"></h3>
+
+    <div id="auth-wrap">
+      <div class="tabs">
+        <button class="pill on" id="t-reg" type="button" data-i18n="tabReg">Register</button>
+        <button class="pill" id="t-log" type="button" data-i18n="tabLog">Log in</button>
+      </div>
+      <form id="auth" class="stack" novalidate>
+        <div class="field" id="nick-wrap">
+          <label for="a-nick" data-i18n="lNick">Nickname</label>
+          <input id="a-nick" type="text" maxlength="24" autocomplete="nickname">
+        </div>
+        <div class="field">
+          <label for="a-email" data-i18n="lEmail">Email</label>
+          <input id="a-email" type="email" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="a-pass" data-i18n="lPass">Password</label>
+          <input id="a-pass" type="password" autocomplete="new-password">
+          <ul class="rules" id="rules">
+            <li id="r-len" data-i18n="rLen">At least 8 characters</li>
+            <li id="r-sym" data-i18n="rSym">At least 1 special character</li>
+          </ul>
+        </div>
+        <div class="field" id="confirm-wrap">
+          <label for="a-pass2" data-i18n="lPass2">Repeat password</label>
+          <input id="a-pass2" type="password" autocomplete="new-password">
+        </div>
+        <div class="err" id="auth-err" role="alert"></div>
+        <button class="btn wide" id="auth-btn" type="submit">Register</button>
+      </form>
+    </div>
+
+    <div id="profile" hidden>
+      <div class="p-head">
+        <button class="avatar" id="avatar-btn" type="button" aria-label="Change photo">
+          <img id="avatar-img" alt="" hidden>
+          <span id="avatar-ini"></span>
+          <em data-i18n="changePhoto">Change photo</em>
+        </button>
+        <input id="avatar-file" type="file" accept="image/*" hidden>
+        <div class="p-id"><b id="p-nick"></b><span id="p-mail"></span></div>
+      </div>
+
+      <div class="field">
+        <label for="nick-edit" data-i18n="lNick">Nickname</label>
+        <div class="row">
+          <input id="nick-edit" type="text" maxlength="24" autocomplete="off">
+          <button class="btn sm ghost" id="nick-save" type="button" data-i18n="save">Save</button>
+        </div>
+      </div>
+      <div class="note" id="p-note" role="status"></div>
+
+      <div class="p-block">
+        <span class="tag" data-i18n="subTitle">Subscription</span>
+        <div class="subcard">
+          <div class="sub-top"><b data-i18n="subTitle">Subscription</b><span class="status" id="p-status"></span></div>
+          <div class="kv"><span id="k-until-l"></span><span id="k-until"></span></div>
+          <div class="kv"><span data-i18n="subLeft">Time left</span><span id="k-left"></span></div>
+        </div>
+      </div>
+
+      <div class="p-block">
+        <label class="tag" for="key-in" data-i18n="lKey">Access key</label>
+        <div class="row">
+          <input id="key-in" type="text" autocomplete="off" spellcheck="false" placeholder="MH-XXXX-XXXX-XXXX-XXXX" style="background:rgba(0,0,0,.35);border:1px solid var(--glass-line);padding:12px 14px;border-radius:14px;font-family:var(--font-mono);font-size:14px;">
+          <button class="btn sm" id="key-btn" type="button" data-i18n="activate">Activate</button>
+        </div>
+        <div class="err" id="key-err" role="alert"></div>
+      </div>
+
+      <button class="btn ghost wide" id="logout" type="button" data-i18n="logout">Log out</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- access keys (SHA-256 hashes only; days: -1 = lifetime) ---------- */
+  var KEYS = {"dfbaed2784d309ae87274b5d3fcad2cc74a9125d529afb93350e4dad9cba9d56":-1,"c730c03f0bc5a2b288c5bd5d43d6076470d5976c28803f0d2efefe47bee5b5f7":7,"2e2535a82bc126ae418cd4564abc790912eae7ed261eeb9c74c9908f497d18ca":7,"9e120cc790f1b670ca1776cf891b6f3302e156dbd29cc8e853a505944e6c0e33":7,"da86b7005e9d8ddab8a80f9c8518e6c19352b0a41370f1212302bf1058ce5141":30,"d11598d09ee27645593c8d6e1626386a0d8b16f151711937fbd536767a2e9d96":30,"067e95f5b1b56a4c864c328dc1cadd9920488c478d851096b58c3354851992b0":30,"fece985c163de37f75ad24e928213d1c5ffce71d4f21dab545109074efaaa4b5":30,"f454259ca38548c081b5cecc614d322204ea680a6aa67c8e287ee89590dcaba7":30,"3bc0395e6de0205ea50f459829df2f19cd7d87c54c8d27dab099a19c72b9d5a9":365,"3a917256cb9820e8e9a6916b587ce7e45707224873ad30018ad4fb84309d38a7":365};
+
+  /* ---------- i18n ---------- */
+  var T = {
+    en: {
+      topTag: "YouTube growth console",
+      slogan: "Enter your video numbers. Get a ranked list of fixes for your channel.",
+      signIn: "Sign in", logout: "Log out", navProducts: "Products", navAbout: "About",
+      plateA: "Access by plan", plateB: "Analyze video ↓",
+      anTitle: "Analyzer", anLead: "Type in what YouTube Studio shows for one video. Leave optional fields empty if you do not have them.",
+      formTitle: "Your video", lTitle: "Video title <i>(optional)</i>", lViews: "Views *", lLikes: "Likes *", lComments: "Comments *",
+      lSubs: "Subscribers <i>(optional)</i>", lCtr: "Impressions CTR, % <i>(optional)</i>", lRet: "Avg. % viewed <i>(optional)</i>",
+      lDur: "Video length, min <i>(optional)</i>", lFreq: "Uploads per week <i>(optional)</i>", analyze: "Analyze",
+      resTitle: "Fix list", resEmpty: "Results appear here after you press Analyze.",
+      histTitle: "Your last analyses",
+      faqLead: "Short answers to what people ask first.",
+      prodLead: "Pick an access plan. After you buy, you get a key and activate it in your profile.",
+      aboutLead: "Built for creators who would rather make videos than read analytics.",
+      aboutLeadBig: "We turn Studio numbers into a to-do list.",
+      aboutP1: "MediaHelper compares your like rate, comment rate, click-through rate, retention and reach with the ranges that healthy YouTube channels usually sit in, then sorts what to fix by impact.",
+      aboutP2: "The benchmarks are rules of thumb, not guarantees. Niches differ, so treat the list as a starting point and test one change at a time.",
+      st1: "metrics checked", st2: "languages", st3: "access plans", st4: "to first result",
+      footNote: "Not affiliated with YouTube.",
+      account: "Account", profile: "Profile", tabReg: "Register", tabLog: "Log in",
+      lNick: "Nickname", lEmail: "Email", lPass: "Password", lPass2: "Repeat password",
+      rLen: "At least 8 characters", rSym: "At least 1 special character (! @ # $ % …)",
+      btnReg: "Register", btnLog: "Log in",
+      eEmail: "Enter a valid email, for example name@mail.com.",
+      eNick: "Nickname must be 2 to 24 characters.",
+      ePassRules: "Password needs 8+ characters and at least one special character.",
+      ePassMatch: "Passwords do not match.",
+      eExists: "This email is already registered. Use Log in.",
+      eNoUser: "No account with this email. Register first.",
+      eWrong: "Wrong password.",
+      okReg: "Account created. You are signed in.", okLog: "Signed in.", okOut: "Signed out.",
+      okNick: "Nickname saved.", okPhoto: "Photo updated.",
+      photoErr: "Could not use this file. Choose an image up to 8 MB.",
+      changePhoto: "Change photo", save: "Save",
+      subTitle: "Subscription", subActive: "Active", subOff: "Inactive",
+      subUntil: "Active until", subLeft: "Time left", subNone: "No active subscription", subLife: "Lifetime",
+      leftFmt: "{d}d {h}h {m}m",
+      lKey: "Access key", activate: "Activate",
+      eKeyEmpty: "Enter your key.",
+      eKey: "This key is not valid. Check it and try again.",
+      eKeyUsed: "This key was already used in this browser.",
+      eKeyBrowser: "This browser cannot check keys. Open the page over https in a current browser.",
+      okKeyDays: "Subscription extended by {n} days.", okKeyLife: "Lifetime access activated.",
+      lockTitle: "Analyzer is locked",
+      lockOut: "Sign in and activate a plan to use the analyzer.",
+      lockIn: "You have no active plan. Choose one, then enter your key in your profile.",
+      seePlans: "See plans", enterKey: "Enter key",
+      locked: "Analyzer is locked. Activate a plan first.",
+      eReq: "Fill in views, likes and comments.",
+      eNeg: "Numbers cannot be negative.",
+      eLikes: "Likes cannot exceed views.",
+      ePct: "CTR and % viewed must be between 0 and 100.",
+      lvHigh: "Fix now", lvMid: "Improve", lvOk: "Good",
+      score: "/100", val: "Your value",
+      v0: "Critical. The video is losing viewers at several points.",
+      v1: "Weak. A few changes could double the result.",
+      v2: "Solid. Polish the remaining weak spots.",
+      v3: "Strong. Keep the formula and repeat it.",
+      buy: "Get access", badge: "Most picked",
+      payNote: "Online payment is not connected yet. Buy a key from the site owner and enter it in your profile.",
+      tips: {
+        like: ["Like rate", "Only {v}% of viewers like the video. Ask for the like at the moment of value (after the key result, not in the intro), and put a short reminder on screen.", "Like rate is {v}%. Close to the 4% mark. Move the like request to your strongest moment.", "Like rate is {v}%. Viewers respond to the content well."],
+        com: ["Comment rate", "Only {v} comments per 1,000 views. End with one specific question and pin your own answer as the first comment.", "{v} comments per 1,000 views. Reply to every comment in the first 2 hours to lift it.", "{v} comments per 1,000 views. The audience is talking. Keep replying."],
+        ctr: ["Click-through rate", "CTR is {v}%. Thumbnail and title are not winning the click. Test a new thumbnail: one face or object, 3 words max, high contrast.", "CTR is {v}%. Try a second thumbnail through Studio's test feature and make the title promise a clear result.", "CTR is {v}%. The packaging works."],
+        ret: ["Retention", "Viewers watch only {v}% on average. Cut the intro to under 15 seconds, remove filler and open with the result.", "Average view is {v}%. Add a pattern change (cut, graphic, new angle) every 20 to 30 seconds.", "Average view is {v}%. Viewers stay to the end."],
+        reach: ["Reach vs subscribers", "Views equal {v}% of your subscribers. The video is not reaching even your own audience. Work on title, thumbnail and posting time first.", "Views equal {v}% of subscribers. Recommendations are giving you a modest push. Improve the first 30 seconds to raise it.", "Views equal {v}% of subscribers. YouTube is showing the video beyond your base."],
+        title: ["Title length", "Title is {v} characters. Aim for 40 to 65 so it is not cut off in search and on mobile.", "Title is {v} characters. Aim for 40 to 65 so it is not cut off in search and on mobile.", "Title is {v} characters. Good length."],
+        dur: ["Length vs retention", "A {v}-minute video with low retention loses viewers. Cut it to the parts people actually watch, or add chapters.", "A {v}-minute video with average retention. Add chapters and cut the slowest 10%.", "A {v}-minute video holds attention."],
+        freq: ["Upload rhythm", "{v} upload per week is too rare to build habit. Start with one fixed day every week.", "{v} uploads per week. Add one short video or Short to keep the channel active.", "{v} uploads per week. Good rhythm, keep it stable."]
+      },
+      faq: [
+        ["Where do I find my numbers?", "Open YouTube Studio, go to Content, choose a video and open Analytics. Views, likes and comments are on the Overview tab. CTR and average percentage viewed are under Reach and Engagement."],
+        ["Is the analyzer free?", "No. It works while you have an active plan. Pick a plan in Products, get a key and activate it in your profile."],
+        ["How do I activate a key?", "Sign in, open your profile, paste the key into the Access key field and press Activate. The days are added to any time you already have."],
+        ["Is the analysis a guarantee of growth?", "No. It compares your numbers with common healthy ranges and tells you where the biggest gap is. Results depend on your niche, audience and consistency."],
+        ["Why does the password need a special character?", "It makes passwords harder to guess. The rule is at least 8 characters and one symbol such as ! @ # $ %."],
+        ["Where is my account stored?", "This demo keeps your account, photo, subscription and last analyses in your own browser only. Clearing site data removes them."]
+      ],
+      prods: [
+        { n: "Week", p: "$5", u: "7 days", f: ["7 days of access", "Unlimited analyses", "Last 3 analyses saved"] },
+        { n: "Month", p: "$15", u: "30 days", f: ["30 days of access", "Unlimited analyses", "Lower price per day"], feat: true },
+        { n: "Year", p: "$99", u: "365 days", f: ["365 days of access", "Unlimited analyses", "Lowest price per day"] }
+      ]
+    },
+    ru: {
+      topTag: "Консоль роста YouTube",
+      slogan: "Впишите цифры своего ролика. Получите список правок для канала по важности.",
+      signIn: "Войти", logout: "Выйти", navProducts: "Товары", navAbout: "О нас",
+      plateA: "Доступ по подписке", plateB: "Анализ ролика ↓",
+      anTitle: "Анализатор", anLead: "Впишите то, что показывает YouTube Studio по одному ролику. Необязательные поля можно оставить пустыми.",
+      formTitle: "Ваш ролик", lTitle: "Название ролика <i>(необязательно)</i>", lViews: "Просмотры *", lLikes: "Лайки *", lComments: "Комментарии *",
+      lSubs: "Подписчики <i>(необязательно)</i>", lCtr: "CTR показов, % <i>(необязательно)</i>", lRet: "Ср. % просмотра <i>(необязательно)</i>",
+      lDur: "Длина ролика, мин <i>(необязательно)</i>", lFreq: "Роликов в неделю <i>(необязательно)</i>", analyze: "Анализировать",
+      resTitle: "Список правок", resEmpty: "Результат появится здесь после нажатия «Анализировать».",
+      histTitle: "Ваши последние анализы",
+      faqLead: "Короткие ответы на частые вопросы.",
+      prodLead: "Выберите тариф доступа. После покупки вы получаете ключ и активируете его в профиле.",
+      aboutLead: "Сделано для тех, кто лучше снимет ролик, чем будет читать аналитику.",
+      aboutLeadBig: "Мы превращаем цифры Studio в список дел.",
+      aboutP1: "MediaHelper сравнивает долю лайков, комментарии, CTR, удержание и охват с диапазонами, в которых обычно находятся здоровые каналы, и сортирует правки по влиянию на результат.",
+      aboutP2: "Ориентиры это практические нормы, а не гарантия. Ниши отличаются, поэтому используйте список как отправную точку и проверяйте по одному изменению.",
+      st1: "метрик проверяем", st2: "языка", st3: "тарифа доступа", st4: "до первого результата",
+      footNote: "Не связано с YouTube.",
+      account: "Аккаунт", profile: "Профиль", tabReg: "Регистрация", tabLog: "Вход",
+      lNick: "Никнейм", lEmail: "Почта", lPass: "Пароль", lPass2: "Повторите пароль",
+      rLen: "Не меньше 8 символов", rSym: "Минимум 1 специальный символ (! @ # $ % …)",
+      btnReg: "Зарегистрироваться", btnLog: "Войти",
+      eEmail: "Введите корректную почту, например name@mail.com.",
+      eNick: "Никнейм должен быть от 2 до 24 символов.",
+      ePassRules: "Пароль должен быть от 8 символов и содержать хотя бы один специальный символ.",
+      ePassMatch: "Пароли не совпадают.",
+      eExists: "Эта почта уже зарегистрирована. Нажмите «Вход».",
+      eNoUser: "Аккаунта с такой почтой нет. Сначала зарегистрируйтесь.",
+      eWrong: "Неверный пароль.",
+      okReg: "Аккаунт создан. Вы вошли.", okLog: "Вы вошли.", okOut: "Вы вышли.",
+      okNick: "Никнейм сохранён.", okPhoto: "Фото обновлено.",
+      photoErr: "Не удалось использовать этот файл. Выберите картинку до 8 МБ.",
+      changePhoto: "Сменить фото", save: "Сохранить",
+      subTitle: "Подписка", subActive: "Активна", subOff: "Не активна",
+      subUntil: "Подписка до", subLeft: "Осталось", subNone: "Нет активной подписки", subLife: "Навсегда",
+      leftFmt: "{d} д {h} ч {m} мин",
+      lKey: "Ключ доступа", activate: "Активировать",
+      eKeyEmpty: "Введите ключ.",
+      eKey: "Ключ недействителен. Проверьте его и попробуйте снова.",
+      eKeyUsed: "Этот ключ уже использован в этом браузере.",
+      eKeyBrowser: "Этот браузер не может проверить ключ. Откройте страницу по https в актуальном браузере.",
+      okKeyDays: "Подписка продлена на {n} дн.", okKeyLife: "Доступ навсегда активирован.",
+      lockTitle: "Анализатор закрыт",
+      lockOut: "Войдите и активируйте тариф, чтобы пользоваться анализатором.",
+      lockIn: "У вас нет активной подписки. Выберите тариф, затем введите ключ в профиле.",
+      seePlans: "Тарифы", enterKey: "Ввести ключ",
+      locked: "Анализатор закрыт. Сначала активируйте тариф.",
+      eReq: "Заполните просмотры, лайки и комментарии.",
+      eNeg: "Числа не могут быть отрицательными.",
+      eLikes: "Лайков не может быть больше, чем просмотров.",
+      ePct: "CTR и % просмотра должны быть от 0 до 100.",
+      lvHigh: "Срочно", lvMid: "Улучшить", lvOk: "Хорошо",
+      score: "/100", val: "Ваше значение",
+      v0: "Критично. Ролик теряет зрителей сразу в нескольких местах.",
+      v1: "Слабо. Несколько правок могут удвоить результат.",
+      v2: "Крепко. Доработайте оставшиеся слабые места.",
+      v3: "Сильно. Сохраните формулу и повторяйте её.",
+      buy: "Получить доступ", badge: "Чаще берут",
+      payNote: "Онлайн-оплата пока не подключена. Купите ключ у владельца сайта и введите его в профиле.",
+      tips: {
+        like: ["Доля лайков", "Лайкает только {v}% зрителей. Просите лайк в момент пользы (после главного результата, а не во вступлении) и добавьте короткое напоминание на экране.", "Доля лайков {v}%. Близко к отметке 4%. Перенесите просьбу о лайке на самый сильный момент.", "Доля лайков {v}%. Зрители хорошо откликаются на ролик."],
+        com: ["Комментарии", "Всего {v} комментариев на 1000 просмотров. Закончите ролик одним конкретным вопросом и закрепите свой ответ первым комментарием.", "{v} комментариев на 1000 просмотров. Отвечайте на все комментарии в первые 2 часа, это поднимет показатель.", "{v} комментариев на 1000 просмотров. Аудитория общается. Продолжайте отвечать."],
+        ctr: ["CTR (кликабельность)", "CTR {v}%. Обложка и название не выигрывают клик. Проверьте новую обложку: одно лицо или предмет, не больше 3 слов, высокий контраст.", "CTR {v}%. Запустите вторую обложку через тест в Studio и сделайте в названии ясное обещание результата.", "CTR {v}%. Упаковка работает."],
+        ret: ["Удержание", "Зрители смотрят в среднем только {v}%. Сократите вступление до 15 секунд, уберите воду и начните с результата.", "Средний просмотр {v}%. Меняйте картинку (склейка, графика, ракурс) каждые 20–30 секунд.", "Средний просмотр {v}%. Зрители досматривают до конца."],
+        reach: ["Охват к подписчикам", "Просмотры равны {v}% от числа подписчиков. Ролик не доходит даже до вашей аудитории. Сначала поработайте над названием, обложкой и временем публикации.", "Просмотры равны {v}% от подписчиков. Рекомендации дают небольшой толчок. Усильте первые 30 секунд, чтобы поднять показатель.", "Просмотры равны {v}% от подписчиков. YouTube показывает ролик за пределами вашей базы."],
+        title: ["Длина названия", "Название {v} символов. Держитесь в пределах 40–65, чтобы его не обрезало в поиске и на телефоне.", "Название {v} символов. Держитесь в пределах 40–65, чтобы его не обрезало в поиске и на телефоне.", "Название {v} символов. Хорошая длина."],
+        dur: ["Длина и удержание", "Ролик на {v} мин с низким удержанием теряет зрителей. Оставьте то, что реально смотрят, или добавьте главы.", "Ролик на {v} мин со средним удержанием. Добавьте главы и вырежьте самые вялые 10%.", "Ролик на {v} мин держит внимание."],
+        freq: ["Ритм выхода", "{v} ролика в неделю это слишком редко для привычки. Начните с одного фиксированного дня каждую неделю.", "{v} ролика в неделю. Добавьте один короткий ролик или Shorts, чтобы канал был активным.", "{v} ролика в неделю. Хороший ритм, держите его стабильным."]
+      },
+      faq: [
+        ["Где взять мои цифры?", "Откройте YouTube Studio, раздел «Контент», выберите ролик и перейдите в «Аналитику». Просмотры, лайки и комментарии на вкладке «Обзор». CTR и средний процент просмотра во вкладках «Охват» и «Вовлечённость»."],
+        ["Анализатор бесплатный?", "Нет. Он работает, пока у вас есть активная подписка. Выберите тариф в разделе «Товары», получите ключ и активируйте его в профиле."],
+        ["Как активировать ключ?", "Войдите, откройте профиль, вставьте ключ в поле «Ключ доступа» и нажмите «Активировать». Дни прибавятся к уже оставшемуся времени."],
+        ["Гарантирует ли анализ рост?", "Нет. Он сравнивает ваши цифры с типичными здоровыми диапазонами и показывает, где самый большой разрыв. Результат зависит от ниши, аудитории и регулярности."],
+        ["Зачем в пароле специальный символ?", "Так пароль сложнее подобрать. Правило: минимум 8 символов и один знак, например ! @ # $ %."],
+        ["Где хранится мой аккаунт?", "В этой демо-версии аккаунт, фото, подписка и последние анализы хранятся только в вашем браузере. Очистка данных сайта их удалит."]
+      ],
+      prods: [
+        { n: "Неделя", p: "450 ₽", u: "7 дней", f: ["7 дней доступа", "Безлимитные анализы", "Сохраняются последние 3 анализа"] },
+        { n: "Месяц", p: "1 190 ₽", u: "30 дней", f: ["30 дней доступа", "Безлимитные анализы", "Цена за день ниже"], feat: true },
+        { n: "Год", p: "7 990 ₽", u: "365 дней", f: ["365 дней доступа", "Безлимитные анализы", "Самая низкая цена за день"] }
+      ]
+    }
+  };
+
+  /* ---------- helpers ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var lang = "en";
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); return "ok"; } catch (e) { return null; } }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function t(k) { return T[lang][k]; }
+  function fmt(n, d) { return (Math.round(n * Math.pow(10, d)) / Math.pow(10, d)).toString().replace(".", lang === "ru" ? "," : "."); }
+  function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+  var subtleOk = !!(window.crypto && crypto.subtle && window.TextEncoder);
+
+  var toastTimer;
+  function toast(msg) {
+    var el = $("toast"); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.hidden = true; }, 4200);
+  }
+
+  /* ---------- state ---------- */
+  var session = null, authMode = "reg", lastResult = null;
+
+  function users() { try { return JSON.parse(store("mh_users") || "{}"); } catch (e) { return {}; } }
+  function saveUsers(u) { store("mh_users", JSON.stringify(u)); }
+  function userRec(email) {
+    var r = users()[email];
+    if (!r) return null;
+    return typeof r === "string" ? { h: r, nick: "" } : r;
+  }
+  function nick() { var r = session && userRec(session); return (r && r.nick) || (session ? session.split("@")[0] : ""); }
+  function avatarUrl() { return session ? store("mh_av_" + session) : null; }
+  function getSub() {
+    if (!session) return { until: 0, life: false };
+    try { var o = JSON.parse(store("mh_sub_" + session) || "null"); if (o) return { until: +o.until || 0, life: !!o.life }; } catch (e) {}
+    return { until: 0, life: false };
+  }
+  function setSub(o) { store("mh_sub_" + session, JSON.stringify(o)); }
+  function hasAccess() { var s = getSub(); return !!session && (s.life || s.until > Date.now()); }
+  function usedKeys() { try { return JSON.parse(store("mh_used") || "[]"); } catch (e) { return []; } }
+
+  function dateStr(ms) {
+    return new Date(ms).toLocaleString(lang === "ru" ? "ru-RU" : "en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  function leftStr(ms) {
+    var m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+    return t("leftFmt").replace("{d}", d).replace("{h}", h).replace("{m}", mi);
+  }
+
+  /* ---------- render static ---------- */
+  function renderStatic() {
+    var d = T[lang];
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var v = d[el.getAttribute("data-i18n")];
+      if (v !== undefined) el.innerHTML = v;
+    });
+    $("lang-ru").classList.toggle("on", lang === "ru");
+    $("lang-en").classList.toggle("on", lang === "en");
+    $("faq-list").innerHTML = d.faq.map(function (q, i) {
+      return '<details class="glass"' + (i === 0 ? " open" : "") + "><summary>" + esc(q[0]) + "</summary><p>" + esc(q[1]) + "</p></details>";
+    }).join("");
+    $("prod-list").innerHTML = d.prods.map(function (p, i) {
+      return '<article class="prod glass' + (p.feat ? " feat" : "") + '">' +
+        (p.feat ? '<span class="badge">' + esc(d.badge) + "</span>" : "") +
+        "<h3>" + esc(p.n) + "</h3>" +
+        '<div class="price">' + esc(p.p) + "<small>" + esc(p.u) + "</small></div>" +
+        "<ul>" + p.f.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" +
+        '<button class="btn' + (p.feat ? "" : " ghost") + '" type="button" data-buy="' + i + '">' + esc(d.buy) + "</button></article>";
+    }).join("");
+    setAuthMode(authMode);
+    updateRules();
+    refreshAccess();
+    if (lastResult) renderResult(lastResult);
+    renderHistory();
+  }
+
+  /* ---------- analysis ---------- */
+  function num(id) { var v = $(id).value.trim(); return v === "" ? null : Number(v); }
+
+  function analyze(d) {
+    var items = [];
+    function add(id, level, v) { items.push({ id: id, level: level, v: v }); }
+    var likeR = d.likes / d.views * 100;
+    add("like", likeR < 2 ? "high" : likeR < 4 ? "mid" : "ok", fmt(likeR, 1));
+    var comR = d.comments / d.views * 1000;
+    add("com", comR < 1 ? "high" : comR < 3 ? "mid" : "ok", fmt(comR, 1));
+    if (d.ctr !== null) add("ctr", d.ctr < 2 ? "high" : d.ctr < 4 ? "mid" : "ok", fmt(d.ctr, 1));
+    if (d.ret !== null) add("ret", d.ret < 30 ? "high" : d.ret < 45 ? "mid" : "ok", fmt(d.ret, 1));
+    if (d.subs) {
+      var reach = d.views / d.subs * 100;
+      add("reach", reach < 5 ? "high" : reach < 20 ? "mid" : "ok", fmt(reach, 0));
+    }
+    if (d.title) {
+      var len = d.title.length;
+      add("title", len < 25 || len > 80 ? "high" : (len < 40 || len > 65) ? "mid" : "ok", len);
+    }
+    if (d.dur !== null && d.ret !== null && d.dur > 0) {
+      add("dur", d.dur > 12 && d.ret < 35 ? "high" : d.dur > 12 && d.ret < 45 ? "mid" : "ok", fmt(d.dur, 1));
+    }
+    if (d.freq !== null) add("freq", d.freq < 1 ? "high" : d.freq < 2 ? "mid" : "ok", fmt(d.freq, 1));
+    var w = { high: 15, mid: 55, ok: 100 };
+    var score = Math.round(items.reduce(function (s, i) { return s + w[i.level]; }, 0) / items.length);
+    var order = { high: 0, mid: 1, ok: 2 };
+    items.sort(function (a, b) { return order[a.level] - order[b.level]; });
+    return { score: score, items: items, title: d.title || "", views: d.views };
+  }
+
+  function renderResult(r) {
+    var vi = r.score < 35 ? 0 : r.score < 60 ? 1 : r.score < 82 ? 2 : 3;
+    var lv = { high: t("lvHigh"), mid: t("lvMid"), ok: t("lvOk") };
+    $("result").innerHTML = '<div class="score-row"><div class="score-num">' + r.score + "<small>" + t("score") + '</small></div>' +
+      '<div class="meter"><div class="bar"><b style="width:' + r.score + '%"></b></div><p class="verdict">' + esc(t("v" + vi)) + "</p></div></div>" +
+      '<ul class="tips">' + r.items.map(function (i) {
+        var tp = T[lang].tips[i.id];
+        var body = tp[i.level === "high" ? 1 : i.level === "mid" ? 2 : 3].replace("{v}", i.v);
+        return '<li class="tip ' + i.level + '"><span class="lvl">' + esc(lv[i.level]) + "</span><h4>" + esc(tp[0]) +
+          "<span>" + esc(t("val")) + ": " + esc(i.v) + "</span></h4><p>" + esc(body) + "</p></li>";
+      }).join("") + "</ul>";
+  }
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!hasAccess()) { toast(t("locked")); refreshAccess(); return; }
+    var err = $("form-err"); err.textContent = "";
+    ["f-views", "f-likes", "f-comments", "f-ctr", "f-ret"].forEach(function (i) { $(i).classList.remove("bad"); });
+    var d = {
+      views: num("f-views"), likes: num("f-likes"), comments: num("f-comments"),
+      subs: num("f-subs"), ctr: num("f-ctr"), ret: num("f-ret"),
+      dur: num("f-dur"), freq: num("f-freq"), title: $("f-title").value.trim()
+    };
+    if (d.views === null || d.likes === null || d.comments === null) {
+      ["f-views", "f-likes", "f-comments"].forEach(function (i) { if ($(i).value.trim() === "") $(i).classList.add("bad"); });
+      err.textContent = t("eReq"); return;
+    }
+    var all = [d.views, d.likes, d.comments, d.subs, d.ctr, d.ret, d.dur, d.freq];
+    if (all.some(function (x) { return x !== null && (isNaN(x) || x < 0); })) { err.textContent = t("eNeg"); return; }
+    if (d.views === 0) { $("f-views").classList.add("bad"); err.textContent = t("eReq"); return; }
+    if (d.likes > d.views) { $("f-likes").classList.add("bad"); err.textContent = t("eLikes"); return; }
+    if ((d.ctr !== null && d.ctr > 100) || (d.ret !== null && d.ret > 100)) { err.textContent = t("ePct"); return; }
+    lastResult = analyze(d);
+    renderResult(lastResult);
+    saveHistory(lastResult);
+    if (window.matchMedia("(max-width: 900px)").matches) $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  /* ---------- access: lock, profile, account button ---------- */
+  function refreshAccess() {
+    var inn = !!session, ok = hasAccess(), s = getSub();
+
+    /* lock */
+    $("lock").hidden = ok;
+    if (ok) $("console").removeAttribute("inert"); else $("console").setAttribute("inert", "");
+    $("lock-text").textContent = inn ? t("lockIn") : t("lockOut");
+    $("lock-main").textContent = inn ? t("enterKey") : t("signIn");
+
+    /* account button */
+    var b = $("acct");
+    if (inn) {
+      var av = avatarUrl();
+      b.innerHTML = '<span class="av-mini">' + (av ? '<img alt="" src="' + av + '">' : esc(nick().charAt(0).toUpperCase())) + '</span><span class="nm">' + esc(nick()) + "</span>";
+      b.setAttribute("aria-label", t("profile"));
+    } else {
+      b.textContent = t("signIn");
+      b.removeAttribute("aria-label");
+    }
+
+    /* modal views */
+    $("m-title").textContent = inn ? t("profile") : t("account");
+    $("auth-wrap").hidden = inn;
+    $("profile").hidden = !inn;
+    if (!inn) return;
+
+    $("p-nick").textContent = nick();
+    $("p-mail").textContent = session;
+    if (document.activeElement !== $("nick-edit")) $("nick-edit").value = nick();
+    var img = $("avatar-img"), av2 = avatarUrl();
+    if (av2) { img.src = av2; img.hidden = false; $("avatar-ini").textContent = ""; }
+    else { img.hidden = true; img.removeAttribute("src"); $("avatar-ini").textContent = nick().charAt(0).toUpperCase(); }
+
+    var st = $("p-status");
+    st.textContent = ok ? t("subActive") : t("subOff");
+    st.classList.toggle("on", ok);
+    $("k-until-l").textContent = t("subUntil");
+    if (s.life) { $("k-until").textContent = t("subLife"); $("k-left").textContent = "∞"; }
+    else if (ok) { $("k-until").textContent = dateStr(s.until); $("k-left").textContent = leftStr(s.until - Date.now()); }
+    else { $("k-until").textContent = "—"; $("k-left").textContent = t("subNone"); }
+  }
+
+  function openModal(focusKey) {
+    $("modal").hidden = false;
+    refreshAccess();
+    setTimeout(function () { var f = session ? (focusKey ? $("key-in") : $("nick-edit")) : $("a-email"); f.focus(); }, 0);
+  }
+  function closeModal() { $("modal").hidden = true; $("acct").focus(); }
+
+  $("acct").addEventListener("click", function () { openModal(false); });
+  $("m-close").addEventListener("click", closeModal);
+  $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+
+  $("lock-main").addEventListener("click", function () { openModal(!!session); });
+
+  /* nickname */
+  $("nick-save").addEventListener("click", function () {
+    var v = $("nick-edit").value.trim();
+    if (v.length < 2 || v.length > 24) { $("p-note").textContent = t("eNick"); return; }
+    var db = users(), r = userRec(session) || { h: "" };
+    r.nick = v; db[session] = r; saveUsers(db);
+    $("p-note").textContent = t("okNick");
+    refreshAccess(); renderHistory();
+  });
+  $("nick-edit").addEventListener("input", function () { $("p-note").textContent = ""; });
+
+  /* avatar */
+  $("avatar-btn").addEventListener("click", function () { $("avatar-file").click(); });
+  $("avatar-file").addEventListener("change", function () {
+    var f = this.files && this.files[0]; this.value = "";
+    if (!f) return;
+    processAvatar(f).then(function (url) {
+      if (store("mh_av_" + session, url) === null) throw new Error("store");
+      $("p-note").textContent = t("okPhoto");
+      refreshAccess();
+    }).catch(function () { $("p-note").textContent = t("photoErr"); });
+  });
+  function processAvatar(file) {
+    return new Promise(function (res, rej) {
+      if (!/^image\//.test(file.type) || file.size > 8 * 1024 * 1024) return rej(new Error("bad"));
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var s = 192, c = document.createElement("canvas"); c.width = c.height = s;
+          var x = c.getContext("2d"), m = Math.min(img.width, img.height);
+          x.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s);
+          res(c.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = function () { rej(new Error("bad")); };
+        img.src = fr.result;
+      };
+      fr.onerror = function () { rej(new Error("bad")); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  /* key activation (demo: keys are checked in the browser, see notes) */
+  function activateKey(raw) {
+    var k = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!k) return Promise.resolve({ err: "eKeyEmpty" });
+    if (!subtleOk) return Promise.resolve({ err: "eKeyBrowser" });
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)).then(function (b) {
+      var h = hex(b);
+      if (!Object.prototype.hasOwnProperty.call(KEYS, h)) return { err: "eKey" };
+      var days = KEYS[h], used = usedKeys();
+      if (days !== -1 && used.indexOf(h) >= 0) return { err: "eKeyUsed" };
+      var s = getSub();
+      if (days === -1) setSub({ until: s.until, life: true });
+      else {
+        setSub({ until: Math.max(Date.now(), s.until) + days * 86400000, life: s.life });
+        used.push(h); store("mh_used", JSON.stringify(used));
+      }
+      return { ok: true, days: days };
+    });
+  }
+  function submitKey() {
+    var err = $("key-err"); err.textContent = "";
+    activateKey($("key-in").value).then(function (r) {
+      if (r.err) { err.textContent = t(r.err); return; }
+      $("key-in").value = "";
+      refreshAccess();
+      toast(r.days === -1 ? t("okKeyLife") : t("okKeyDays").replace("{n}", r.days));
+    });
+  }
+  $("key-btn").addEventListener("click", submitKey);
+  $("key-in").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitKey(); } });
+
+  /* ---------- auth ---------- */
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function passOk(p) { return { len: p.length >= 8, sym: /[^A-Za-z0-9]/.test(p) }; }
+  function hash(email, pass) {
+    var s = email + "|" + pass;
+    if (subtleOk) return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(hex);
+    return Promise.resolve(btoa(unescape(encodeURIComponent(s))));
+  }
+  function updateRules() {
+    var r = passOk($("a-pass").value);
+    $("r-len").classList.toggle("pass", r.len);
+    $("r-sym").classList.toggle("pass", r.sym);
+    $("rules").hidden = authMode !== "reg";
+  }
+  function setAuthMode(m) {
+    authMode = m;
+    $("t-reg").classList.toggle("on", m === "reg");
+    $("t-log").classList.toggle("on", m === "log");
+    $("confirm-wrap").hidden = m !== "reg";
+    $("nick-wrap").hidden = m !== "reg";
+    $("auth-btn").textContent = m === "reg" ? t("btnReg") : t("btnLog");
+    $("a-pass").autocomplete = m === "reg" ? "new-password" : "current-password";
+    $("auth-err").textContent = "";
+    updateRules();
+  }
+  $("t-reg").addEventListener("click", function () { setAuthMode("reg"); });
+  $("t-log").addEventListener("click", function () { setAuthMode("log"); });
+  $("a-pass").addEventListener("input", updateRules);
+
+  function signedIn(email, msg) {
+    session = email; store("mh_session", email);
+    $("auth").reset(); updateRules();
+    refreshAccess(); renderHistory(); toast(msg);
+    closeModal();
+  }
+
+  $("auth").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = $("auth-err"); err.textContent = "";
+    var email = $("a-email").value.trim().toLowerCase();
+    var pass = $("a-pass").value;
+    if (!EMAIL_RE.test(email)) { err.textContent = t("eEmail"); return; }
+    var db = users();
+    if (authMode === "reg") {
+      var nk = $("a-nick").value.trim() || email.split("@")[0].slice(0, 24);
+      if (nk.length < 2 || nk.length > 24) { err.textContent = t("eNick"); return; }
+      var r = passOk(pass);
+      if (!r.len || !r.sym) { err.textContent = t("ePassRules"); return; }
+      if (pass !== $("a-pass2").value) { err.textContent = t("ePassMatch"); return; }
+      if (db[email]) { err.textContent = t("eExists"); return; }
+      hash(email, pass).then(function (h) {
+        db[email] = { h: h, nick: nk }; saveUsers(db);
+        signedIn(email, t("okReg"));
+      });
+    } else {
+      var rec = userRec(email);
+      if (!rec) { err.textContent = t("eNoUser"); return; }
+      hash(email, pass).then(function (h) {
+        if (h !== rec.h) { err.textContent = t("eWrong"); return; }
+        signedIn(email, t("okLog"));
+      });
+    }
+  });
+
+  $("logout").addEventListener("click", function () {
+    session = null; store("mh_session", "");
+    refreshAccess(); renderHistory(); closeModal(); toast(t("okOut"));
+  });
+
+  /* ---------- history (per account, this browser) ---------- */
+  function histKey() { return "mh_hist_" + session; }
+  function saveHistory(r) {
+    if (!session) return;
+    var h; try { h = JSON.parse(store(histKey()) || "[]"); } catch (e) { h = []; }
+    h.unshift({ t: r.title, s: r.score, v: r.views, d: new Date().toISOString().slice(0, 10) });
+    store(histKey(), JSON.stringify(h.slice(0, 3)));
+    renderHistory();
+  }
+  function renderHistory() {
+    var box = $("hist");
+    if (!session) { box.hidden = true; return; }
+    var h; try { h = JSON.parse(store(histKey()) || "[]"); } catch (e) { h = []; }
+    box.hidden = h.length === 0;
+    $("hist-list").innerHTML = h.map(function (x) {
+      return "<li><span>" + esc(x.d) + " · " + esc(x.t || (x.v + " views")) + "</span><span>" + x.s + "/100</span></li>";
+    }).join("");
+  }
+
+  /* ---------- navigation ---------- */
+  document.addEventListener("click", function (e) {
+    var g = e.target.closest("[data-go]");
+    if (g) { var s = $(g.getAttribute("data-go")); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    var b = e.target.closest("[data-buy]");
+    if (b) {
+      toast(t("payNote"));
+      openModal(true);
+    }
+  });
+  $("lang-ru").addEventListener("click", function () { lang = "ru"; store("mh_lang", "ru"); renderStatic(); });
+  $("lang-en").addEventListener("click", function () { lang = "en"; store("mh_lang", "en"); renderStatic(); });
+
+  /* ---------- boot ---------- */
+  var saved = store("mh_lang");
+  lang = saved === "ru" || saved === "en" ? saved : ((navigator.language || "en").toLowerCase().indexOf("ru") === 0 ? "ru" : "en");
+  var s0 = store("mh_session");
+  if (s0 && userRec(s0)) session = s0;
+
+  /* example values so the console opens in a working state */
+  $("f-title").value = lang === "ru" ? "Как я набрал 100 000 просмотров за месяц" : "How I got 100,000 views in a month";
+  $("f-views").value = 12400; $("f-likes").value = 310; $("f-comments").value = 14;
+  $("f-subs").value = 5200; $("f-ctr").value = 3.1; $("f-ret").value = 34; $("f-dur").value = 14; $("f-freq").value = 1;
+  lastResult = analyze({ views: 12400, likes: 310, comments: 14, subs: 5200, ctr: 3.1, ret: 34, dur: 14, freq: 1, title: $("f-title").value });
+  renderStatic();
+  setInterval(refreshAccess, 30000);
+})();
+</script>
+
+</body></html>
